@@ -1,3 +1,4 @@
+import Application from '@ioc:Adonis/Core/Application'
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import Book from 'App/Models/Book'
 import StoreBookValidator from 'App/Validators/StoreBookValidator'
@@ -12,6 +13,20 @@ export default class BooksController {
     const book = await request.validate(StoreBookValidator)
 
     await Book.create(book)
+    const coverImage = request.file('image', {
+      size: '2mb',
+      extnames: ['jpg', 'png', 'gif'],
+    })
+
+    if (!coverImage) {
+      return
+    }
+
+    if (!coverImage.isValid) {
+      return coverImage.errors
+    }
+
+    await coverImage.move(Application.tmpPath('uploads'))
 
     return response.status(201)
   }

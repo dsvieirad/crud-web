@@ -2,7 +2,7 @@ import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
 import User from 'App/Models/User'
 import StoreUserValidator from 'App/Validators/StoreUserValidator'
 import UpdateUserValidator from 'App/Validators/UpdateUserValidator'
-import Event from '@ioc:Adonis/Core/Event'
+import Mail from '@ioc:Adonis/Addons/Mail'
 
 export default class UsersController {
   public async index({}: HttpContextContract) {
@@ -10,12 +10,21 @@ export default class UsersController {
   }
 
   public async store({ response, request }: HttpContextContract) {
-    const user = await request.validate(StoreUserValidator)
+    try {
+      const user = await request.validate(StoreUserValidator)
 
-    await User.create(user)
-    Event.emit('user.created', user)
-
-    return response.status(201)
+      await User.create(user)
+      await Mail.send((message) => {
+        message
+          .from('jeondani0105@gmail.com')
+          .to(user.email)
+          .subject('Email Autenticado')
+          .htmlView('emails/verify-email', { user: user.name })
+      })
+      return response.status(201)
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   public async show({ params }: HttpContextContract) {
@@ -38,5 +47,22 @@ export default class UsersController {
     await User.query().where('id', params.id).delete()
 
     return response.status(204)
+  }
+
+  public async getUsers() {
+    const users = await User.query().select(['id', 'username', 'email'])
+    return users
+  }
+
+  public async getUserRoles(userId: number) {
+    try {
+      const user = await User.findOrFail(userId)
+      await user.load('roles')
+      const roles = user.related('roles')
+      return roles
+    } catch (error) {
+      console.error('Erro ao recuperar as roles do usuário:', error)
+      throw error
+    }
   }
 }

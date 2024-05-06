@@ -18,13 +18,6 @@ export default class LoginController {
         expiresIn: '15 mins',
       })
 
-      response.cookie('token', token.token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
-        maxAge: 15 * 60,
-      })
-
       return token.toJSON()
     } catch (error) {
       console.error('Erro durante a autenticação:', error.message)
